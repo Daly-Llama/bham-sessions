@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "setlist-app",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8731"],
+      "cwd": "app",
+      "port": 8731
+    }
+  ]
+}

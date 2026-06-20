@@ -1,0 +1,7 @@
+# Downloaded dump CSVs are build inputs only — regenerated via build_index.py.
+# The committed app/tune_index.json is what the app actually loads.
+data/*.csv
+
+__pycache__/
+*.pyc
+.DS_Store
