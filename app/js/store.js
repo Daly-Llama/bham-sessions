@@ -34,8 +34,25 @@ function tuneEntry(order) {
     url: null,
     source: "thesession", // "thesession" | "custom"
     raw_name: "",
+    preferred_alias: null, // locally-remembered alternate name, persists across sessions
+    setting_id: null,      // thesession.org setting ID for deep-link anchor
   };
 }
+
+// Separate key so preferred alias memory persists independently of session data.
+const PREF_ALIASES_KEY = "bham_preferred_aliases";
+
+const PreferredAliasStore = {
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(PREF_ALIASES_KEY)) || {}; } catch { return {}; }
+  },
+  get(tuneId) { return this.getAll()[String(tuneId)] || null; },
+  set(tuneId, alias) {
+    const all = this.getAll();
+    all[String(tuneId)] = alias;
+    localStorage.setItem(PREF_ALIASES_KEY, JSON.stringify(all));
+  },
+};
 
 const Store = {
   _all() {
@@ -84,4 +101,4 @@ const Store = {
   },
 };
 
-export { Store, emptySession, emptySet, tuneEntry, newId };
+export { Store, PreferredAliasStore, emptySession, emptySet, tuneEntry, newId };

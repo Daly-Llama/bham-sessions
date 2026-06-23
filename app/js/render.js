@@ -19,12 +19,15 @@ function formatDate(iso) {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "2-digit" });
 }
 
+function tuneUrl(tune) {
+  if (!tune.url) return null;
+  return tune.setting_id ? `${tune.url}#setting${tune.setting_id}` : tune.url;
+}
+
 function tuneCell(tune) {
-  const name = esc(tune.canonical_name || tune.raw_name || "");
-  if (tune.url) {
-    return `<a href="${esc(tune.url)}" target="_blank" rel="noopener">${name}</a>`;
-  }
-  return name;
+  const name = esc(tune.preferred_alias || tune.canonical_name || tune.raw_name || "");
+  const url = tuneUrl(tune);
+  return url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${name}</a>` : name;
 }
 
 function renderSession(session) {

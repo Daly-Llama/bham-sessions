@@ -2,8 +2,8 @@
 // Wires the phone-first entry form to the matcher, store, and renderer.
 // Vanilla DOM, event delegation. Loads tune_index.json at startup.
 
-import { Matcher } from "./matcher.js";
-import { Store, emptySession, emptySet, tuneEntry } from "./store.js";
+import { Matcher, norm } from "./matcher.js";
+import { Store, PreferredAliasStore, emptySession, emptySet, tuneEntry } from "./store.js";
 import { renderSession, titleType } from "./render.js";
 
 let matcher = null;
@@ -68,15 +68,23 @@ function renderTuneRow(tune, setIdx, tuneIdx) {
     ? `<span class="badge custom-badge">custom</span>`
     : (tune.tune_id ? `<span class="badge linked">✓ linked</span>` : "");
 
+  const settingInput = (tune.tune_id && tune.source === "thesession")
+    ? `<input class="setting-id" type="number" min="1" placeholder="#setting"
+              title="thesession.org setting ID (optional)" value="${attr(String(tune.setting_id || ""))}">`
+    : `<span class="setting-id-gap"></span>`;
+
+  const displayName = tune.preferred_alias || tune.canonical_name || tune.raw_name;
+
   row.innerHTML = `
     <span class="order">${tuneIdx + 1}</span>
     <div class="tune-field">
       <input class="tune-name" placeholder="Tune name…" autocomplete="off"
-             value="${attr(tune.canonical_name || tune.raw_name)}">
+             value="${attr(displayName)}">
       <div class="suggestions" hidden></div>
     </div>
     <span class="tune-type">${esc(typeLabel)}</span>
     ${badge}
+    ${settingInput}
     <button class="icon-btn del-tune" title="Remove tune">✕</button>`;
   return row;
 }
@@ -88,16 +96,25 @@ function showSuggestions(input, setIdx, tuneIdx) {
   const results = matcher.search(input.value, { limit: 8 });
   if (!results.length) { box.hidden = true; box.innerHTML = ""; return; }
 
-  box.innerHTML = results.map((r) => `
+  // Substitute stored preferred alias as the display name for known tunes.
+  const displayResults = results.map((r) => {
+    const pref = PreferredAliasStore.get(r.id);
+    return pref ? { ...r, name: pref, matchedAlias: null } : r;
+  });
+
+  box.innerHTML = displayResults.map((r) => `
     <button class="suggestion" data-id="${r.id}">
       <span class="s-name">${esc(r.name)}</span>
       <span class="s-meta">${esc(titleType(r.type))}</span>
       ${r.matchedAlias ? `<span class="s-alias">aka ${esc(r.matchedAlias)}</span>` : ""}
+      <a class="s-link" href="${esc(r.url)}" target="_blank" rel="noopener"
+         title="View on thesession.org" tabindex="-1">↗</a>
     </button>`).join("");
   box.hidden = false;
 
   box.querySelectorAll(".suggestion").forEach((btn) => {
     btn.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".s-link")) return; // let the link open without selecting
       e.preventDefault(); // keep focus / fire before blur
       const chosen = results.find((r) => String(r.id) === btn.dataset.id);
       assignTune(setIdx, tuneIdx, chosen);
@@ -105,9 +122,23 @@ function showSuggestions(input, setIdx, tuneIdx) {
   });
 }
 
+function injectPreferredAlias(tuneId, alias) {
+  const tune = matcher.index.find((t) => t.id === tuneId);
+  if (!tune) return;
+  const key = norm(alias);
+  if (!matcher.entries.some((e) => e.key === key && e.tune.id === tuneId)) {
+    matcher.entries.push({ key, label: alias, tune, alias: true });
+  }
+}
+
 function assignTune(setIdx, tuneIdx, chosen) {
   const t = session.sets[setIdx].tunes[tuneIdx];
+  if (chosen.matchedAlias) {
+    PreferredAliasStore.set(chosen.id, chosen.matchedAlias);
+    injectPreferredAlias(chosen.id, chosen.matchedAlias);
+  }
   t.canonical_name = chosen.name;
+  t.preferred_alias = PreferredAliasStore.get(chosen.id) || null;
   t.type = chosen.type;
   t.tune_id = chosen.id;
   t.url = chosen.url;
@@ -183,11 +214,19 @@ function wireEvents() {
       const t = session.sets[setIdx].tunes[tuneIdx];
       t.raw_name = e.target.value;
       // Typing past a linked tune unlinks it until re-selected.
-      if (t.tune_id && e.target.value !== t.canonical_name) {
-        t.tune_id = null; t.url = null; t.canonical_name = ""; t.source = "thesession";
+      if (t.tune_id && e.target.value !== (t.preferred_alias || t.canonical_name)) {
+        t.tune_id = null; t.url = null; t.canonical_name = "";
+        t.preferred_alias = null; t.setting_id = null; t.source = "thesession";
       }
       persist();
       showSuggestions(e.target, setIdx, tuneIdx);
+    } else if (e.target.classList.contains("setting-id")) {
+      const tuneIdx = +e.target.closest(".tune-row").dataset.tune;
+      const t = session.sets[setIdx].tunes[tuneIdx];
+      const raw = e.target.value.trim();
+      t.setting_id = raw ? parseInt(raw, 10) : null;
+      persist();
+      // No renderEditor() — avoids destroying the input mid-typing
     }
   });
 
@@ -249,6 +288,10 @@ function attr(s) { return esc(s).replace(/"/g, "&quot;"); }
 async function main() {
   const res = await fetch("tune_index.json");
   matcher = new Matcher(await res.json());
+  // Inject any previously saved preferred aliases so they rank in searches.
+  for (const [tuneId, alias] of Object.entries(PreferredAliasStore.getAll())) {
+    injectPreferredAlias(parseInt(tuneId, 10), alias);
+  }
   loadSession();
   if (!session.sets.length) addSet();
   setMeta();
