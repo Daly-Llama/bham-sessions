@@ -64,6 +64,18 @@ main { max-width: 820px; margin: 0 auto; padding: 14px 12px 60px; }
 .badge.custom-badge { background: #fff3cd; color: #8a6d00; }
 .icon-btn { border: none; background: transparent; color: var(--muted); padding: 4px 6px; font-size: 14px; }
 .icon-btn:hover { color: #c0392b; background: transparent; }
+.setting-id {
+  width: 76px;
+  font-size: 13px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  -moz-appearance: textfield;
+}
+.setting-id::-webkit-outer-spin-button,
+.setting-id::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.setting-id-gap { width: 76px; display: inline-block; }
 
 .set-actions { display: flex; gap: 8px; margin-top: 10px; }
 .set-actions button { font-size: 13px; padding: 6px 10px; }
@@ -86,7 +98,17 @@ main { max-width: 820px; margin: 0 auto; padding: 14px 12px 60px; }
 .suggestion:hover { background: var(--row-alt); }
 .s-name { font-weight: 600; }
 .s-meta { font-size: 12px; color: var(--muted); }
-.s-alias { font-size: 12px; color: var(--accent); margin-left: auto; }
+.s-alias { font-size: 12px; color: var(--accent); }
+.s-link {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.s-link:hover { color: var(--accent); background: var(--row-alt); }
 
 /* ---- preview / setlist ---- */
 #preview { display: none; }
