@@ -34,23 +34,36 @@ function tuneEntry(order) {
     url: null,
     source: "thesession", // "thesession" | "custom"
     raw_name: "",
-    preferred_alias: null, // locally-remembered alternate name, persists across sessions
+    preferred_alias: null, // locally-remembered alternate name
     setting_id: null,      // thesession.org setting ID for deep-link anchor
   };
 }
 
-// Separate key so preferred alias memory persists independently of session data.
-const PREF_ALIASES_KEY = "bham_preferred_aliases";
+// Cross-session memory: preferred alias and setting ID per tune.
+// Stored separately so it survives session wipes and exports.
+// Migrates transparently from old string-only format { tuneId: "alias" }.
+const TUNE_MEMORY_KEY = "bham_preferred_aliases"; // key kept for backward compat
 
-const PreferredAliasStore = {
+const TuneMemoryStore = {
+  _raw() {
+    try { return JSON.parse(localStorage.getItem(TUNE_MEMORY_KEY)) || {}; } catch { return {}; }
+  },
   getAll() {
-    try { return JSON.parse(localStorage.getItem(PREF_ALIASES_KEY)) || {}; } catch { return {}; }
+    const raw = this._raw();
+    const out = {};
+    for (const [id, val] of Object.entries(raw)) {
+      out[id] = typeof val === "string" ? { alias: val } : val;
+    }
+    return out;
   },
   get(tuneId) { return this.getAll()[String(tuneId)] || null; },
-  set(tuneId, alias) {
-    const all = this.getAll();
-    all[String(tuneId)] = alias;
-    localStorage.setItem(PREF_ALIASES_KEY, JSON.stringify(all));
+  set(tuneId, patch) {
+    const raw = this._raw();
+    const existing = typeof raw[String(tuneId)] === "string"
+      ? { alias: raw[String(tuneId)] }
+      : (raw[String(tuneId)] || {});
+    raw[String(tuneId)] = { ...existing, ...patch };
+    localStorage.setItem(TUNE_MEMORY_KEY, JSON.stringify(raw));
   },
 };
 
@@ -101,4 +114,4 @@ const Store = {
   },
 };
 
-export { Store, PreferredAliasStore, emptySession, emptySet, tuneEntry, newId };
+export { Store, TuneMemoryStore, emptySession, emptySet, tuneEntry, newId };

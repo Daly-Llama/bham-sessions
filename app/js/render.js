@@ -37,18 +37,20 @@ function renderSession(session) {
   session.sets.forEach((set, i) => {
     const setNo = i + 1;
     const count = set.tunes.length;
+    // Set header: number + requester in first two cells, tune name col spans remainder
     rows.push(`
       <tr class="set-header">
-        <td class="set-no"><strong>Set: ${setNo}</strong><br><span class="count">Count: ${count}</span></td>
-        <td colspan="4"></td>
+        <td class="set-no"><strong>Set ${setNo}</strong> <span class="count">(${count})</span></td>
+        <td class="set-req">${esc(set.requester)}</td>
+        <td colspan="2"></td>
       </tr>`);
     set.tunes.forEach((tune, j) => {
+      // Tune number indented in the same column as the set number
       rows.push(`
         <tr>
-          <td class="set-no-cell">${setNo}</td>
-          <td>${esc(set.requester)}</td>
+          <td class="tune-no">${j + 1}</td>
+          <td></td>
           <td class="tune">${tuneCell(tune)}</td>
-          <td class="order">${j + 1}</td>
           <td class="type">${esc(titleType(tune.type))}</td>
         </tr>`);
     });
@@ -58,10 +60,15 @@ function renderSession(session) {
     <div class="setlist">
       <h1 class="setlist-title">${title}</h1>
       <table class="setlist-table">
+        <colgroup>
+          <col class="col-set">
+          <col class="col-req">
+          <col class="col-tune">
+          <col class="col-type">
+        </colgroup>
         <thead>
           <tr>
-            <th>Set</th><th>Requested By</th><th>Tune Name and Link</th>
-            <th>Tune Order</th><th>Tune Type</th>
+            <th>Set / #</th><th>Requested By</th><th>Tune Name and Link</th><th>Type</th>
           </tr>
         </thead>
         <tbody>${rows.join("")}</tbody>
