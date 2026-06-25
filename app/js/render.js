@@ -37,14 +37,15 @@ function renderSession(session) {
   session.sets.forEach((set, i) => {
     const setNo = i + 1;
     const count = set.tunes.length;
-    // Set header: name + requester in first two cells, rest empty
+    // Set header: number + requester in first two cells, tune name col spans remainder
     rows.push(`
       <tr class="set-header">
         <td class="set-no"><strong>Set ${setNo}</strong> <span class="count">(${count})</span></td>
-        <td class="set-requester">${esc(set.requester)}</td>
+        <td class="set-req">${esc(set.requester)}</td>
         <td colspan="2"></td>
       </tr>`);
     set.tunes.forEach((tune, j) => {
+      // Tune number indented in the same column as the set number
       rows.push(`
         <tr>
           <td class="tune-no">${j + 1}</td>
@@ -67,7 +68,7 @@ function renderSession(session) {
         </colgroup>
         <thead>
           <tr>
-            <th>Set / #</th><th>Requested By</th><th>Tune Name and Link</th><th>Tune Type</th>
+            <th>Set / #</th><th>Requested By</th><th>Tune Name and Link</th><th>Type</th>
           </tr>
         </thead>
         <tbody>${rows.join("")}</tbody>
